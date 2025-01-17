@@ -289,7 +289,7 @@ module Markd
           tag("strong", {class: "block titlebar"}) do
             output("💡 小提示")
           end
-          literal(node.text)
+          literal(Markd.to_html(node.text))
         end
       end
 
