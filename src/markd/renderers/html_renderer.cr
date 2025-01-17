@@ -285,17 +285,11 @@ module Markd
 
         literal(formatter.format(node.text.chomp, lexer))
       else
-        code_tag_attrs = attrs(node)
-        pre_tag_attrs = if @options.prettyprint?
-                          {"class" => "prettyprint"}
-                        else
-                          nil
-                        end
-
-        tag("pre", pre_tag_attrs) do
-          tag("code", code_tag_attrs) do
-            code_block_body(node, lang)
+        tag("div", {class: "box info"}) do
+          tag("strong", {class: "block titlebar"}) do
+            output("💡 小提示")
           end
+          literal(node.text)
         end
       end
 
@@ -323,6 +317,7 @@ module Markd
           code_block_body(node, lang)
         end
       end
+
       newline
     end
   end
