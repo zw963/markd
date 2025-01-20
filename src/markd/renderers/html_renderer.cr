@@ -22,7 +22,7 @@ module Markd
     end
 
     def code(node : Node, entering : Bool) : Nil
-      tag("chip", {"class" => "info"}) do
+      tag("mark") do
         code_body(node)
       end
     end
