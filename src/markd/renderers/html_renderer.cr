@@ -338,7 +338,7 @@ module Markd
       if lang
         lexer = Tartrazine.lexer(lang)
 
-        literal(formatter.format("\n#{node.text.chomp}", lexer))
+        literal(formatter.format("\n#{node.text.chomp}\n", lexer))
       else
         tag("div", {class: "box info"}) do
           tag("strong", {class: "block titlebar"}) do
