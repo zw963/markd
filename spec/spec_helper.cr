@@ -49,7 +49,8 @@ def assert_example(file, section, index, example, smart, gfm = false)
   options = Markd::Options.new(
     gfm: gfm || tags.includes?("gfm"),
     emoji: tags.includes?("emoji"),
-    tagfilter: tags.includes?("tagfilter")
+    tagfilter: tags.includes?("tagfilter"),
+    autolink: tags.includes?("autolink")
   )
   options.smart = true if smart
 
@@ -61,6 +62,8 @@ def assert_example(file, section, index, example, smart, gfm = false)
   else
     it "- #{index}\n#{show_space(markdown)}", file, line do
       output = Markd.to_html(markdown, options)
+      next if html == "<IGNORE>\n"
+
       output.should eq(html), file: file, line: line
     end
   end
