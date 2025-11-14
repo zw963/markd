@@ -11,10 +11,17 @@ module Markd
 
     def heading(node : Node, entering : Bool) : Nil
       tag_name = HEADINGS[node.data["level"].as(Int32) - 1]
+      toc = @options.toc
+
       if entering
         newline
         tag(tag_name, attrs(node))
-        toc(node) if @options.toc
+        case toc
+        when String
+          toc(node, toc)
+        when true
+          toc(node)
+        end
       else
         tag(tag_name, end_tag: true)
         newline
@@ -22,7 +29,7 @@ module Markd
     end
 
     def code(node : Node, entering : Bool) : Nil
-      tag("code") do
+      tag("mark") do
         code_body(node)
       end
     end
@@ -173,6 +180,7 @@ module Markd
           attrs ||= {} of String => String
           destination = resolve_uri(destination, node)
           attrs["href"] = escape(destination)
+          attrs["class"] = "inline-flex"
         end
 
         if (title = node.data["title"].as(String)) && !title.empty?
@@ -182,6 +190,18 @@ module Markd
 
         tag("a", attrs)
       else
+        @output_io << <<-'HEREDOC'
+<svg
+width="10px"
+height="10px"
+viewBox="0 0 16 16"
+fill="currentColor"
+>
+<path
+d="m5.068 9.267-3.08-.77a.512.512 0 0 1 0-.994l3.08-.77a2.289 2.289 0 0 0 1.665-1.665l.77-3.08a.512.512 0 0 1 .994 0l.77 3.08c.205.82.845 1.46 1.665 1.665l3.08.77a.512.512 0 0 1 0 .994l-3.08.77a2.29 2.29 0 0 0-1.665 1.665l-.77 3.08a.512.512 0 0 1-.994 0l-.77-3.08a2.289 2.289 0 0 0-1.665-1.665Z">
+</path>
+</svg>
+HEREDOC
         tag("a", end_tag: true)
       end
     end
@@ -308,16 +328,16 @@ module Markd
       url.match(Rule::UNSAFE_PROTOCOL) && !url.match(Rule::UNSAFE_DATA_PROTOCOL)
     end
 
-    private def toc(node : Node)
+    private def toc(node : Node, anchor_text = "§")
       return unless node.type.heading?
 
-      {% if compare_versions(Crystal::VERSION, "1.2.0") < 0 %}
-        title = URI.encode(node.first_child.text)
-        @output_io << %(<a id="anchor-) << title << %(" class="anchor" href="#anchor-) << title << %("></a>)
-      {% else %}
-        title = URI.encode_path(node.first_child.text)
-        @output_io << %(<a id="anchor-) << title << %(" class="anchor" href="#anchor-) << title << %("></a>)
-      {% end %}
+      title = {% if compare_versions(Crystal::VERSION, "1.2.0") < 0 %}
+                URI.encode(node.first_child.text)
+              {% else %}
+                URI.encode_path(node.first_child.text)
+              {% end %}
+
+      @output_io << %(<a id="anchor-) << title << %(" class="anchor" href="#anchor-) << title << %(">) << anchor_text << %( </a>)
       @last_output = ">"
     end
 
@@ -338,19 +358,13 @@ module Markd
       if lang
         lexer = Tartrazine.lexer(lang)
 
-        literal(formatter.format(node.text.chomp, lexer))
+        literal(formatter.format("\n#{node.text.chomp}\n", lexer))
       else
-        code_tag_attrs = attrs(node)
-        pre_tag_attrs = if @options.prettyprint?
-                          {"class" => "prettyprint"}
-                        else
-                          nil
-                        end
-
-        tag("pre", pre_tag_attrs) do
-          tag("code", code_tag_attrs) do
-            code_block_body(node, lang)
+        tag("div", {class: "box info"}) do
+          tag("strong", {class: "block titlebar"}) do
+            output("💡 小提示")
           end
+          literal(Markd.to_html(node.text))
         end
       end
 
@@ -378,6 +392,7 @@ module Markd
           code_block_body(node, lang)
         end
       end
+
       newline
     end
   end
